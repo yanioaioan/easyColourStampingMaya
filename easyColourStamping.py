@@ -1,7 +1,7 @@
 
 import maya.cmds as cmds
 from random import randint,random
-import math
+import math,os
 
 
 def getVtxPos( shapeNode ) :
@@ -33,9 +33,18 @@ def getVertexColor():
     
     
 # this simple function is called each time the script below decides an object should be located
-def locate_object(x,y,z):
-			cmds.polyCone()		
-			cmds.scale(0.5, 0.5, 0.5)
+def locate_object(stringChoice,x,y,z):
+	
+			#place a shape depending on what the user has selected
+			if stringChoice == 'cones':
+				cmds.polyCone()		
+			if stringChoice == 'spheres':
+				cmds.polySphere()		
+			if stringChoice == 'cubes':
+				cmds.polyCube()		
+			
+			scaleFactor=0.2
+			cmds.scale(scaleFactor,scaleFactor,scaleFactor)
 			cmds.move( x,y,z)
 
 
@@ -45,7 +54,7 @@ def apply_texture(object):
         cmds.sets(name='imageMaterialGroup', renderable=True, empty=True)
         shaderNode = cmds.shadingNode('phong', name='shaderNode', asShader=True)
         fileNode = cmds.shadingNode('file', name='fileTexture', asTexture=True)
-        myfile = ("textures"+ "/" +"1637192.jpg")
+        myfile = (currentDir+"/textures"+ "/" +"1637192.jpg")
         cmds.setAttr('fileTexture'+'.fileTextureName', myfile, type="string")
         shadingGroup = cmds.sets(name='textureMaterialGroup', renderable=True, empty=True)
         cmds.connectAttr('shaderNode'+'.outColor','textureMaterialGroup'+'.surfaceShader', force=True)
@@ -53,22 +62,42 @@ def apply_texture(object):
         cmds.surfaceShaderList('shaderNode', add='imageMaterialGroup')
         cmds.sets(object, e=True, forceElement='imageMaterialGroup')
 
-
+#At areas where the underlying vertex color is red, place cones
+def checkSampleAndPlace(sample):
+	if sample[0] > 0.9 and sample[1] < 0.2 and sample[2] < 0.2: # checks if the red component is more than 0.9 and the other to channels have significantly smaller values
+		print "sample=%s"%sample
+		print "vertexnumber=%s"%vertexnumber
+		#cmds.select(mysphere[0]+'.vtx['+str(vertexnumber)+']')
+		locate_object('cones',sphereVertexPosList[vertexnumber][0], sphereVertexPosList[vertexnumber][1], sphereVertexPosList[vertexnumber][2])	
+	
+	#At areas where the underlying vertex color is white, place sphere
+	if sample[0] > 0.9 and sample[1] > 0.9 and sample[2] > 0.9: # checks if all components are more than 0.9, white areas
+		print "sample=%s"%sample
+		print "vertexnumber=%s"%vertexnumber
+		#cmds.select(mysphere[0]+'.vtx['+str(vertexnumber)+']')
+		locate_object('spheres',sphereVertexPosList[vertexnumber][0], sphereVertexPosList[vertexnumber][1], sphereVertexPosList[vertexnumber][2])	
+		
+	
+	#At areas where the underlying vertex color is black, place cubes
+	if sample[0] < 0.2 and sample[1] < 0.2 and sample[2] < 0.2: # checks if all components are les than 0.2, black areas
+		print "sample=%s"%sample
+		print "vertexnumber=%s"%vertexnumber
+		#cmds.select(mysphere[0]+'.vtx['+str(vertexnumber)+']')
+		locate_object('cubes',sphereVertexPosList[vertexnumber][0], sphereVertexPosList[vertexnumber][1], sphereVertexPosList[vertexnumber][2])	
+				
+	
+currentDir=os.getcwd()
 cmds.file(new=True, force=True)
-
-
 #create a sphere    
 mysphereradius=5
-mysphere=cmds.polySphere(r=sphereradius)
+mysphere=cmds.polySphere(r=mysphereradius)
 
 #now assign a texture to sphere
 #create one shader		
-myshadingNodeName1=createShaderwithText(1)
+#myshadingNodeName1=createShaderwithText(1)
 cmds.select(mysphere[0])
 apply_texture(mysphere[0])
 cmds.DisplayShadedAndTextured()
-
-
 
 #save a list of all shapes world positions
 sphereVertexPosList=getVtxPos('pSphereShape1')
@@ -86,13 +115,10 @@ for vertexnumber in range(size):
 	#cmds.select(r)
 	uvs=cmds.polyEditUV(r, query=True )
 	sample = cmds.colorAtPoint( 'fileTexture.fileTextureName', output ='RGBA', u =uvs[0], v = uvs[1] )
+	checkSampleAndPlace(sample)
 	
-	if sample[0] > 0.9 and sample[1] < 0.2 and sample[2] < 0.2: # checks if the red component is more than 0.7 and the other to channels have significantly smaller values
-		print "sample=%s"%sample
-		print "vertexnumber=%s"%vertexnumber
-		#cmds.select(mysphere[0]+'.vtx['+str(vertexnumber)+']')
-		locate_object(sphereVertexPosList[vertexnumber][0], sphereVertexPosList[vertexnumber][1], sphereVertexPosList[vertexnumber][2])	
-				
+	
+	
 	
 	
 	  
