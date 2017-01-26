@@ -48,13 +48,13 @@ def locate_object(stringChoice,x,y,z):
 			cmds.move( x,y,z)
 
 
-
-def apply_texture(object):
+#
+def apply_texture(object,textureNameUnderTexturesdir):
         
         cmds.sets(name='imageMaterialGroup', renderable=True, empty=True)
         shaderNode = cmds.shadingNode('phong', name='shaderNode', asShader=True)
         fileNode = cmds.shadingNode('file', name='fileTexture', asTexture=True)
-        myfile = (currentDir+"/textures"+ "/" +"1637192.jpg")
+        myfile = (currentDir+"/textures"+ "/" +textureNameUnderTexturesdir)
         cmds.setAttr('fileTexture'+'.fileTextureName', myfile, type="string")
         shadingGroup = cmds.sets(name='textureMaterialGroup', renderable=True, empty=True)
         cmds.connectAttr('shaderNode'+'.outColor','textureMaterialGroup'+'.surfaceShader', force=True)
@@ -92,18 +92,19 @@ cmds.file(new=True, force=True)
 mysphereradius=5
 mysphere=cmds.polySphere(r=mysphereradius)
 
-#now assign a texture to sphere
+#now assign a texture to selected sphere
 #create one shader		
 #myshadingNodeName1=createShaderwithText(1)
 cmds.select(mysphere[0])
-apply_texture(mysphere[0])
+apply_texture(mysphere[0],"1637192.jpg")
 cmds.DisplayShadedAndTextured()
 
 #save a list of all shapes world positions
 sphereVertexPosList=getVtxPos('pSphereShape1')
 size=len(sphereVertexPosList)
 vertexCount=0
-#loop and print all positions of the vertices on the sphere
+
+#for all positions of the vertices on the sphere
 for vertexnumber in range(size):
 	
 	#cmds.select(mysphere[0]+'.vtx['+str(vertexnumber)+']', r=True)	
@@ -111,10 +112,15 @@ for vertexnumber in range(size):
 	#vertexnumber=203
 	#cmds.select(mysphere[0]+'.vtx['+str(vertexnumber)+']')
 	
+	#convert each vtx, from vertex to uv
 	r= cmds.polyListComponentConversion( mysphere[0]+'.vtx['+str(vertexnumber)+']', fv=True, tuv=True, internal=True )
 	#cmds.select(r)
+	
+	#and then use this uv to query its values
 	uvs=cmds.polyEditUV(r, query=True )
+	#and then assing these uv vales to the colorAtPoint u and v flags to retrieve the color sample at this particular uv coordinate(of that vertex)
 	sample = cmds.colorAtPoint( 'fileTexture.fileTextureName', output ='RGBA', u =uvs[0], v = uvs[1] )
+	#pass the sample down to the function checkSampleAndPlace which is responsible for placing the appropriate shapes depending on the colour found on a particular vertex 
 	checkSampleAndPlace(sample)
 	
 	
